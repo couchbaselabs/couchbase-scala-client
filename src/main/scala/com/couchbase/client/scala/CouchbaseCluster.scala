@@ -10,12 +10,12 @@ import rx.functions.Func1
 import scala.concurrent.duration.Duration
 
 
-class CouchbaseCluster(nodes: List[String], core: CouchbaseCore) extends Cluster {
+class CouchbaseCluster(nodes: Seq[String], core: CouchbaseCore) extends Cluster {
 
   val rxCluster = new RxCouchbaseCluster(nodes, core)
-  ClusterHelper.initSeedNodes(core, nodes).toBlocking.single
+  ClusterHelper.initSeedNodes(core, nodes.toList).toBlocking.single
 
-  def this(nodes: List[String]) {
+  def this(nodes: Seq[String]) {
     this(nodes, new CouchbaseCore)
   }
 
@@ -36,4 +36,10 @@ class CouchbaseCluster(nodes: List[String], core: CouchbaseCore) extends Cluster
     observable.timeout(timeout.toMillis, TimeUnit.MILLISECONDS).toBlocking.single
   }
 
+}
+
+object CouchbaseCluster {
+
+  def apply(): CouchbaseCluster = new CouchbaseCluster(List("127.0.0.1"))
+  def apply(nodes: Seq[String]): CouchbaseCluster = new CouchbaseCluster(nodes)
 }

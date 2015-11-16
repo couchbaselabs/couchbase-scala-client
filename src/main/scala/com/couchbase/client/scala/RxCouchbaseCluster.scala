@@ -5,11 +5,11 @@ import com.couchbase.client.scala.util.ClusterHelper
 import rx.lang.scala.Observable
 import rx.lang.scala.JavaConversions._
 
-class RxCouchbaseCluster(nodes: List[String], core: CouchbaseCore) extends RxCluster {
+class RxCouchbaseCluster(nodes: Seq[String], core: CouchbaseCore) extends RxCluster {
 
-  ClusterHelper.initSeedNodes(core, nodes).toBlocking.single
+  ClusterHelper.initSeedNodes(core, nodes.toList).toBlocking.single
 
-  def this(nodes: List[String]) {
+  def this(nodes: Seq[String]) {
     this(nodes, new CouchbaseCore)
   }
 
@@ -18,4 +18,10 @@ class RxCouchbaseCluster(nodes: List[String], core: CouchbaseCore) extends RxClu
     .map(success => new RxCouchbaseBucket(core, name))
   }
 
+}
+
+object RxCouchbaseCluster {
+
+  def apply(): RxCouchbaseCluster = new RxCouchbaseCluster(List("127.0.0.1"))
+  def apply(nodes: Seq[String]): RxCouchbaseCluster = new RxCouchbaseCluster(nodes)
 }

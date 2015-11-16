@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, FlatSpec}
 class ClusterSpec extends FlatSpec with Matchers {
 
   "A Bucket" should "be opened correctly" in {
-    val cluster = new CouchbaseCluster(List(SpecProperties.seedNode))
+    val cluster = new CouchbaseCluster(Seq(SpecProperties.seedNode))
     val bucket = cluster.openBucket(SpecProperties.bucket, SpecProperties.password)
 
     bucket.name() should be (SpecProperties.bucket)

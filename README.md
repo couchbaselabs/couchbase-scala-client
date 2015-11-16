@@ -40,7 +40,7 @@ Using It
 Here is a quick sample which stores and loads a document. More to come.
 
 ```scala
-val cluster = new CouchbaseCluster(List("127.0.0.1"))
+val cluster = CouchbaseCluster(List("127.0.0.1"))
 val bucket = cluster.openBucket("default", "")
 
 val stored = bucket.upsert(JsonDocument("my-doc", JsonObject()))
