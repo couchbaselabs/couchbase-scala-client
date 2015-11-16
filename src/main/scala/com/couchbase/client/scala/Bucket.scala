@@ -1,0 +1,19 @@
+package com.couchbase.client.scala
+
+import com.couchbase.client.scala.document.{Document, JsonDocument}
+
+import scala.concurrent.duration.Duration
+
+trait Bucket {
+
+  def rx(): RxBucket
+
+  def get(id: String): Option[JsonDocument]
+
+  def get(id: String, timeout: Duration): Option[JsonDocument]
+
+  def get[D <: Document[_]](id: String, target: Class[D]): Option[D]
+
+  def get[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Option[D]
+
+}
