@@ -11,7 +11,13 @@ case class JsonDocument(
   expiry: Option[Duration] = None,
   cas: Option[Long] = None,
   mutationToken: Option[MutationToken] = None)
-  extends Document[JsonObject]
+  extends Document[JsonObject] {
+
+  override def copy(cas: Long, mutationToken: MutationToken): JsonDocument = {
+    new JsonDocument(id, content, expiry, if (cas == 0) { None } else { Some(cas) }, Option(mutationToken))
+  }
+
+}
 
 object JsonDocument {
   def apply(id: String): JsonDocument =

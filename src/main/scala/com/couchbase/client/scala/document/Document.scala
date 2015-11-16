@@ -10,4 +10,6 @@ trait Document[T] {
   def expiry: Option[Duration]
   def cas: Option[Long]
   def mutationToken: Option[MutationToken]
+
+  def copy(cas: Long, mutationToken: MutationToken): Document[T]
 }

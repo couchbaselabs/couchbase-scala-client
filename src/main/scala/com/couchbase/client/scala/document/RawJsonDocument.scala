@@ -10,7 +10,13 @@ case class RawJsonDocument(
     expiry: Option[Duration] = None,
     cas: Option[Long] = None,
     mutationToken: Option[MutationToken] = None)
-  extends Document[String]
+  extends Document[String] {
+
+  override def copy(cas: Long, mutationToken: MutationToken): RawJsonDocument = {
+    new RawJsonDocument(id, content, expiry, if (cas == 0) { None } else { Some(cas) }, Option(mutationToken))
+  }
+
+}
 
 object RawJsonDocument {
   def apply(id: String): RawJsonDocument =

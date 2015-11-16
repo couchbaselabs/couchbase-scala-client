@@ -7,12 +7,15 @@ import com.couchbase.client.scala.util.BucketHelper
 import rx.lang.scala.Observable
 import rx.lang.scala.JavaConversions._
 
-class RxCouchbaseBucket(core: CouchbaseCore, name: String) extends RxBucket {
+class RxCouchbaseBucket(core: CouchbaseCore, _name: String) extends RxBucket {
 
   val transcoders: Map[Class[_], Transcoder[_, _]] = Map(
     BucketHelper.RAW_JSON_TRANSCODER.documentType() -> BucketHelper.RAW_JSON_TRANSCODER,
     BucketHelper.JSON_TRANSCODER.documentType() -> BucketHelper.JSON_TRANSCODER
   )
+
+
+  override def name(): String = _name
 
   override def get(id: String): Observable[JsonDocument] = {
     get(id, classOf[JsonDocument])

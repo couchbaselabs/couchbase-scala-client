@@ -1,18 +1,15 @@
 package com.couchbase.client.scala
 
-import com.couchbase.client.scala.document.{Document, RawJsonDocument}
+import com.couchbase.client.scala.util.SpecProperties
 import org.scalatest.{Matchers, FlatSpec}
-
-import scala.concurrent.duration.Duration
 
 class ClusterSpec extends FlatSpec with Matchers {
 
   "A Bucket" should "be opened correctly" in {
-    val cluster = new CouchbaseCluster(List("127.0.0.1"))
-    val bucket = cluster.openBucket("travel-sample", "", Duration("2500 ms"))
+    val cluster = new CouchbaseCluster(List(SpecProperties.seedNode))
+    val bucket = cluster.openBucket(SpecProperties.bucket, SpecProperties.password)
 
-    val doc = bucket.get("airline_10")
-    println(doc.get.content.get.get("name").get)
+    bucket.name() should be (SpecProperties.bucket)
   }
 
 }

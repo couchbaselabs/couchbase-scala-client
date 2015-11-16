@@ -21,6 +21,11 @@ class CouchbaseCluster(nodes: List[String], core: CouchbaseCore) extends Cluster
 
   override def rx(): RxCluster = rxCluster
 
+
+  override def openBucket(name: String, password: String): Bucket = {
+    openBucket(name, password, Duration("5 s"))
+  }
+
   override def openBucket(name: String, password: String, timeout: Duration): Bucket = {
     blockWithDuration(ClusterHelper.openBucket(core, name, password).map[Bucket](new Func1[Boolean, Bucket] {
       override def call(success: Boolean): Bucket = new CouchbaseBucket(core, name)
