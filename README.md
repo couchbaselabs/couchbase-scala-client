@@ -37,6 +37,12 @@ couchbase-scala-client $ sbt publish-m2
 
 Using It
 --------
+Once built into the local maven repo, you can use it in your project:
+
+```
+"com.couchbase.client" %% "scala-client" % "1.0.0-SNAPSHOT"
+```
+
 Here is a quick sample which stores and loads a document. More to come.
 
 ```scala
