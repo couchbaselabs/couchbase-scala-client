@@ -23,15 +23,16 @@ package com.couchbase.client.scala
 
 import com.couchbase.client.scala.document.JsonDocument
 import com.couchbase.client.scala.document.json.JsonObject
+import com.couchbase.client.scala.error.DocumentAlreadyExistsException
 import com.couchbase.client.scala.util.SpecProperties
 import org.scalatest.{Matchers, FlatSpec}
 
 class BucketSpec extends FlatSpec with Matchers {
 
-  "A Document" should "be upserted and loaded correctly" in {
-    val cluster = new CouchbaseCluster(List(SpecProperties.seedNode))
-    val bucket = cluster.openBucket(SpecProperties.bucket, SpecProperties.password)
+  val cluster = new CouchbaseCluster(List(SpecProperties.seedNode))
+  val bucket = cluster.openBucket(SpecProperties.bucket, SpecProperties.password)
 
+  "A Document" should "be upserted and loaded correctly" in {
     val toStore = JsonDocument("my-doc", JsonObject())
     val stored = bucket.upsert(toStore)
 
@@ -43,6 +44,24 @@ class BucketSpec extends FlatSpec with Matchers {
     val loaded = bucket.get("my-doc")
     stored.content should equal (loaded.get.content)
     stored.cas should equal (loaded.get.cas)
+  }
+
+  it should "be removed after being upserted" in {
+    val toStore = JsonDocument("my-doc2", JsonObject())
+    val stored = bucket.upsert(toStore)
+
+    val loaded = bucket.get("my-doc2")
+    stored.content should equal (loaded.get.content)
+    stored.cas should equal (loaded.get.cas)
+
+    val removed = bucket.remove("my-doc2")
+    removed.id should equal (stored.id)
+    bucket.get("my-doc2") should equal (None)
+  }
+
+  it should "fail on double insert" in {
+    bucket.upsert(JsonDocument("my-doc3", JsonObject()))
+    intercept[DocumentAlreadyExistsException] { bucket.insert(JsonDocument("my-doc3", JsonObject())) }
   }
 
 }

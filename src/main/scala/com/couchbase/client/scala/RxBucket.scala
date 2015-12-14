@@ -41,4 +41,11 @@ trait RxBucket {
 
   def replace[D <: Document[_]](document: D): Observable[D]
 
+  def remove(id: String): Observable[JsonDocument]
+
+  def remove[D <: Document[_]](id: String, target: Class[D]): Observable[D]
+
+  def remove[D <: Document[_]](document: D): Observable[D]
+
+
 }

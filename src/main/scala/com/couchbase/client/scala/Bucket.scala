@@ -45,4 +45,16 @@ trait Bucket {
 
   def replace[D <: Document[_]](document: D, timeout: Duration = null): D
 
+  def remove(id: String): JsonDocument
+
+  def remove(id: String, timeout: Duration): JsonDocument
+
+  def remove[D <: Document[_]](id: String, target: Class[D]): D
+
+  def remove[D <: Document[_]](id: String, target: Class[D], timeout: Duration): D
+
+  def remove[D <: Document[_]](document: D): D
+
+  def remove[D <: Document[_]](document: D, timeout: Duration): D
+
 }

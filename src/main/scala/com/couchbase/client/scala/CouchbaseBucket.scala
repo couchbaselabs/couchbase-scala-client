@@ -32,7 +32,7 @@ import scala.concurrent.duration.Duration
 
 class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
 
-  private val transcoders: Map[Class[_], Transcoder[_, _]] = Map(
+  private val transcoders: Map[Class[_ <: Document[_]], Transcoder[_ <: Document[_], _]] = Map(
     BucketHelper.RAW_JSON_TRANSCODER.documentType() -> BucketHelper.RAW_JSON_TRANSCODER,
     BucketHelper.JSON_TRANSCODER.documentType() -> BucketHelper.JSON_TRANSCODER
   )
@@ -56,33 +56,63 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
 
   override def get[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Option[D] = {
     Option(BucketHelper
-      .get[D](core, id, name(), target,  BucketHelper.transcoderFor(target, transcoders))
+      .get[D](core, id, name(), target,  BucketHelper.transcoderFor(target,
+        transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]))
       .timeout(timeout.toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .singleOrDefault(null.asInstanceOf[D]))
   }
 
   override def upsert[D <: Document[_]](document: D, timeout: Duration = null): D = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
-      .upsert(core, document, name(), transcoders)
+      .upsert(core, document, name(), t)
       .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
 
   override def insert[D <: Document[_]](document: D, timeout: Duration = null): D = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
-      .insert(core, document, name(), transcoders)
+      .insert(core, document, name(), t)
       .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
 
   override def replace[D <: Document[_]](document: D, timeout: Duration = null): D = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
-      .replace(core, document, name(), transcoders)
+      .replace(core, document, name(), t)
       .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
+
+  override def remove(id: String): JsonDocument = remove(id, Duration("2500 ms"))
+
+  override def remove(id: String, timeout: Duration): JsonDocument = {
+    remove(JsonDocument(id, null, 0))
+  }
+
+  override def remove[D <: Document[_]](id: String, target: Class[D]): D = remove(id, target, null)
+
+  override def remove[D <: Document[_]](id: String, target: Class[D], timeout: Duration): D = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    val doc = BucketHelper.transcoderFor(target, t).newDocument(id, 0, 0, null)
+    remove(doc, timeout)
+  }
+
+  override def remove[D <: Document[_]](document: D): D = remove(document, null)
+
+  override def remove[D <: Document[_]](document: D, timeout: Duration): D = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    BucketHelper
+      .remove(core, document, name(), t)
+      .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
+      .toBlocking
+      .single()
+  }
+
 }

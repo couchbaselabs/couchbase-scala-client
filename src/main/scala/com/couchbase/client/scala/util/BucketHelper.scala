@@ -75,8 +75,8 @@ object BucketHelper {
       }))
   }
 
-  def upsert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[_],
-    Transcoder[_, _]]): Observable[D] = {
+  def upsert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
+    Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -106,8 +106,8 @@ object BucketHelper {
       }))
   }
 
-  def insert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[_],
-    Transcoder[_, _]]): Observable[D] = {
+  def insert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
+    Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -137,8 +137,8 @@ object BucketHelper {
       }))
   }
 
-  def replace[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[_],
-    Transcoder[_, _]]): Observable[D] = {
+  def replace[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
+    Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -169,8 +169,38 @@ object BucketHelper {
       }))
   }
 
-  def transcoderFor[D <: Document[_]](target: Class[D], transcoders: Map[Class[_],
-    Transcoder[_, _]]): Transcoder[D, _] = {
+  def remove[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
+    Transcoder[D, _]]): Observable[D] = {
+    val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
+
+    Observable
+      .just(bucket)
+      .flatMap(scalaFunction1ToRxFunc1(bucket => core.send[RemoveResponse](
+        new RemoveRequest(document.id, document.cas.getOrElse(0), bucket)
+      ))).map(scalaFunction1ToRxFunc1(response => {
+        if (response.content() != null && response.content().refCnt() > 0) {
+          response.content().release()
+        }
+
+        if (response.status().isSuccess) {
+          transcoder.newDocument(document.id, response.cas(), 0, response.mutationToken())
+        } else {
+          response.status() match {
+            case ResponseStatus.NOT_EXISTS => throw new DocumentDoesNotExistException()
+            case ResponseStatus.EXISTS => throw new CASMismatchException()
+            case ResponseStatus.TEMPORARY_FAILURE | ResponseStatus.SERVER_BUSY =>
+              throw new TemporaryFailureException()
+            case ResponseStatus.OUT_OF_MEMORY => throw new CouchbaseOutOfMemoryException()
+            case _ => throw new CouchbaseException(response.status().toString)
+          }
+        }
+      }))
+  }
+
+
+  def transcoderFor[D <: Document[_]](
+    target: Class[D],
+    transcoders: Map[Class[D], Transcoder[D, _]]): Transcoder[D, _] = {
     transcoders
       .getOrElse(target, throw new IllegalArgumentException(s"No Transcoder found for type: $target"))
       .asInstanceOf[Transcoder[D, _]]

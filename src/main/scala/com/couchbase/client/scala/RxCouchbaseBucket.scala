@@ -30,7 +30,7 @@ import rx.lang.scala.JavaConversions._
 
 class RxCouchbaseBucket(core: CouchbaseCore, _name: String) extends RxBucket {
 
-  private val transcoders: Map[Class[_], Transcoder[_, _]] = Map(
+  private val transcoders: Map[Class[_ <: Document[_]], Transcoder[_ <: Document[_], _]] = Map(
     BucketHelper.RAW_JSON_TRANSCODER.documentType() -> BucketHelper.RAW_JSON_TRANSCODER,
     BucketHelper.JSON_TRANSCODER.documentType() -> BucketHelper.JSON_TRANSCODER
   )
@@ -39,20 +39,42 @@ class RxCouchbaseBucket(core: CouchbaseCore, _name: String) extends RxBucket {
 
   override def get(id: String): Observable[JsonDocument] = get(id, classOf[JsonDocument])
 
-  override def get[D <: Document[_]](id: String, target: Class[D]): Observable[D] =
+  override def get[D <: Document[_]](id: String, target: Class[D]): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     toScalaObservable(
-      BucketHelper.get[D](core, id, name, target, BucketHelper.transcoderFor(target, transcoders)))
+      BucketHelper.get[D](core, id, name, target, BucketHelper.transcoderFor(target, t)))
+  }
 
 
-  override def insert[D <: Document[_]](document: D): Observable[D] =
-    toScalaObservable(BucketHelper.insert(core, document, name(), transcoders))
+  override def insert[D <: Document[_]](document: D): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toScalaObservable(BucketHelper.insert(core, document, name(), t))
+  }
 
 
-  override def replace[D <: Document[_]](document: D): Observable[D] =
-    toScalaObservable(BucketHelper.replace(core, document, name(), transcoders))
+  override def replace[D <: Document[_]](document: D): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toScalaObservable(BucketHelper.replace(core, document, name(), t))
+  }
 
 
-  override def upsert[D <: Document[_]](document: D): Observable[D] =
-    toScalaObservable(BucketHelper.upsert(core, document, name(), transcoders))
+  override def upsert[D <: Document[_]](document: D): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toScalaObservable(BucketHelper.upsert(core, document, name(), t))
+  }
 
+  override def remove(id: String): Observable[JsonDocument] = {
+    remove(JsonDocument(id, null, 0))
+  }
+
+  override def remove[D <: Document[_]](id: String, target: Class[D]): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    val doc = BucketHelper.transcoderFor(target, t).newDocument(id, 0, 0, null)
+    remove(doc)
+  }
+
+  override def remove[D <: Document[_]](document: D): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toScalaObservable(BucketHelper.remove(core, document, name(), t))
+  }
 }

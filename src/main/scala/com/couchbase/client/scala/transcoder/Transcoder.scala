@@ -30,6 +30,11 @@ import com.couchbase.client.scala.error.TranscodingException
 trait Transcoder[D <: Document[T], T] {
 
   def newDocument(id: String, content: T, cas: Long, expiry: Int, mutationToken: MutationToken): D
+
+  def newDocument(id: String, cas: Long, expiry: Int, mutationToken: MutationToken): D = {
+    newDocument(id, null.asInstanceOf[T], cas, expiry, mutationToken)
+  }
+
   def documentType(): Class[D]
 
   def doEncode(document: D) : (ByteBuf, Int)
