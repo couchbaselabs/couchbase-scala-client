@@ -16,6 +16,9 @@ lazy val root = (project in file(".")).
       "io.reactivex" %% "rxscala" % "0.25.0",
       "io.reactivex" % "rxjava-reactive-streams" % "1.0.1",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.6.3",
-      "org.scalatest" %% "scalatest" % "2.2.5" % "test,it"
+
+      "org.scalatest" %% "scalatest" % "2.2.5" % "test,it",
+      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0-M2" % "test,it",
+      "com.typesafe.akka" %% "akka-stream-testkit-experimental" % "2.0-M2" % "test,it"
     )
   )
