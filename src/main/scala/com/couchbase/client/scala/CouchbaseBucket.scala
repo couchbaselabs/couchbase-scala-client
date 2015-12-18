@@ -27,6 +27,7 @@ import com.couchbase.client.core.CouchbaseCore
 import com.couchbase.client.scala.document.{Document, JsonDocument}
 import com.couchbase.client.scala.transcoder.Transcoder
 import com.couchbase.client.scala.util.BucketHelper
+import scala.collection.JavaConversions._
 
 import scala.concurrent.duration.Duration
 
@@ -37,13 +38,15 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
     BucketHelper.JSON_TRANSCODER.documentType() -> BucketHelper.JSON_TRANSCODER
   )
 
+  private val FIXME_DURATION = Duration("2500 ms")
+
   override def rx(): RxBucket = new RxCouchbaseBucket(core, _name)
 
 
   override def name(): String = _name
 
   override def get(id: String): Option[JsonDocument] = {
-    get(id, Duration("2500 ms"))
+    get(id, FIXME_DURATION)
   }
 
   override def get(id: String, timeout: Duration): Option[JsonDocument] = {
@@ -51,23 +54,24 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
   }
 
   override def get[D <: Document[_]](id: String, target: Class[D]): Option[D] = {
-    get(id, target, Duration("2500 ms"))
+    get(id, target, FIXME_DURATION)
   }
 
   override def get[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Option[D] = {
-    Option(BucketHelper
-      .get[D](core, id, name(), target,  BucketHelper.transcoderFor(target,
-        transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]))
-      .timeout(timeout.toMillis, TimeUnit.MILLISECONDS)
-      .toBlocking
-      .singleOrDefault(null.asInstanceOf[D]))
+        Option(BucketHelper
+          .get[D](core, id, name(), target, BucketHelper.transcoderFor(target,
+            transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]))
+          .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
+          .toBlocking
+          .singleOrDefault(null.asInstanceOf[D]))
   }
+
 
   override def upsert[D <: Document[_]](document: D, timeout: Duration = null): D = {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
       .upsert(core, document, name(), t)
-      .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
@@ -76,7 +80,7 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
       .insert(core, document, name(), t)
-      .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
@@ -85,12 +89,12 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
       .replace(core, document, name(), t)
-      .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
   }
 
-  override def remove(id: String): JsonDocument = remove(id, Duration("2500 ms"))
+  override def remove(id: String): JsonDocument = remove(id, FIXME_DURATION)
 
   override def remove(id: String, timeout: Duration): JsonDocument = {
     remove(JsonDocument(id, null, 0))
@@ -110,9 +114,37 @@ class CouchbaseBucket(core: CouchbaseCore, _name: String) extends Bucket {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
     BucketHelper
       .remove(core, document, name(), t)
-      .timeout(Option(timeout).getOrElse(Duration("2500 ms")).toMillis, TimeUnit.MILLISECONDS)
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
       .toBlocking
       .single()
+  }
+
+  override def exists(id: String): Boolean = exists(id, null)
+
+  override def exists[D <: Document[_]](document: D): Boolean = exists(document, null)
+
+  override def exists[D <: Document[_]](document: D, timeout: Duration): Boolean = exists(document.id, timeout)
+
+  override def getFromReplica(id: String): Iterable[JsonDocument] = getFromReplica(id, FIXME_DURATION)
+
+  override def getFromReplica(id: String, timeout: Duration): Iterable[JsonDocument] = getFromReplica(id, classOf[JsonDocument], timeout)
+
+  override def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Iterable[D] = getFromReplica(id, target, null)
+
+  override def exists(id: String, timeout: Duration): Boolean = {
+    BucketHelper.exists(core, id, name())
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
+      .toBlocking
+      .single()
+  }
+
+  override def getFromReplica[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Iterable[D] = {
+    BucketHelper
+      .getFromReplica(core, id, name(), target, BucketHelper.transcoderFor(target,
+        transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]))
+      .timeout(Option(timeout).getOrElse(FIXME_DURATION).toMillis, TimeUnit.MILLISECONDS)
+      .toBlocking
+      .toIterable
   }
 
 }

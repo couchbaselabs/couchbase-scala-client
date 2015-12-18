@@ -11,6 +11,14 @@ trait RsBucket {
 
   def get[D <: Document[_]](id: String, target: Class[D]): Publisher[D]
 
+  def exists(id: String): Publisher[Boolean]
+
+  def exists[D <: Document[_]](document: D): Publisher[Boolean]
+
+  def getFromReplica(id: String): Publisher[JsonDocument]
+
+  def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Publisher[D]
+
   def insert[D <: Document[_]](document: D): Publisher[D]
 
   def upsert[D <: Document[_]](document: D): Publisher[D]

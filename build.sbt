@@ -1,9 +1,11 @@
-
 lazy val commonSettings = Seq(
   name := "scala-client",
-  scalaVersion := "2.11.7",
+  scalaVersion := "2.10.6",
   organization := "com.couchbase.client",
-  version := "1.0.0-SNAPSHOT"
+  version := "1.0.0-SNAPSHOT",
+  crossScalaVersions := Seq("2.11.7", "2.10.6"),
+  javacOptions ++= Seq("-source", "1.7", "-target", "1.7"),
+  scalacOptions += "-target:jvm-1.7"
 )
 
 lazy val root = (project in file(".")).

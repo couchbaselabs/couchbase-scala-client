@@ -35,6 +35,14 @@ trait RxBucket {
 
   def get[D <: Document[_]](id: String, target: Class[D]): Observable[D]
 
+  def exists(id: String): Observable[Boolean]
+
+  def exists[D <: Document[_]](document: D): Observable[Boolean]
+
+  def getFromReplica(id: String): Observable[JsonDocument]
+
+  def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Observable[D]
+
   def insert[D <: Document[_]](document: D): Observable[D]
 
   def upsert[D <: Document[_]](document: D): Observable[D]

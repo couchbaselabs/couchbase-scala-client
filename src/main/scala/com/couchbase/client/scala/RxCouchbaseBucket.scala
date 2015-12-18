@@ -45,6 +45,18 @@ class RxCouchbaseBucket(core: CouchbaseCore, _name: String) extends RxBucket {
       BucketHelper.get[D](core, id, name, target, BucketHelper.transcoderFor(target, t)))
   }
 
+  override def exists(id: String): Observable[Boolean] =
+    toScalaObservable(BucketHelper.exists(core, id, name()))
+
+  override def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Observable[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toScalaObservable(BucketHelper
+      .getFromReplica(core, id, name(), target, BucketHelper.transcoderFor(target, t)))
+  }
+
+  override def getFromReplica(id: String): Observable[JsonDocument] = getFromReplica(id, classOf[JsonDocument])
+
+  override def exists[D <: Document[_]](document: D): Observable[Boolean] = exists(document.id)
 
   override def insert[D <: Document[_]](document: D): Observable[D] = {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]

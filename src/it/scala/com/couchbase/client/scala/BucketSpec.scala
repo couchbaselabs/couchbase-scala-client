@@ -42,6 +42,7 @@ class BucketSpec extends FlatSpec with Matchers {
     stored.content.get should equal (JsonObject())
 
     val loaded = bucket.get("my-doc")
+
     stored.content should equal (loaded.get.content)
     stored.cas should equal (loaded.get.cas)
   }
@@ -50,6 +51,8 @@ class BucketSpec extends FlatSpec with Matchers {
     val toStore = JsonDocument("my-doc2", JsonObject())
     val stored = bucket.upsert(toStore)
 
+    bucket.exists("my-doc2") should equal (true)
+
     val loaded = bucket.get("my-doc2")
     stored.content should equal (loaded.get.content)
     stored.cas should equal (loaded.get.cas)
@@ -57,11 +60,21 @@ class BucketSpec extends FlatSpec with Matchers {
     val removed = bucket.remove("my-doc2")
     removed.id should equal (stored.id)
     bucket.get("my-doc2") should equal (None)
+
+    bucket.exists("my-doc2") should equal (false)
   }
 
   it should "fail on double insert" in {
     bucket.upsert(JsonDocument("my-doc3", JsonObject()))
     intercept[DocumentAlreadyExistsException] { bucket.insert(JsonDocument("my-doc3", JsonObject())) }
+  }
+
+  it should "get data from master and/or replica" in {
+    val toStore = JsonDocument("my-doc3", JsonObject())
+    val stored = bucket.upsert(toStore)
+
+    val loaded = bucket.getFromReplica("my-doc3").toList
+    loaded.length should be >= 1
   }
 
 }

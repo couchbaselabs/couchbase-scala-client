@@ -24,6 +24,7 @@ package com.couchbase.client.scala
 import com.couchbase.client.scala.document.{Document, JsonDocument}
 
 import scala.concurrent.duration.Duration
+import scala.reflect.ClassTag
 
 trait Bucket {
 
@@ -38,6 +39,22 @@ trait Bucket {
   def get[D <: Document[_]](id: String, target: Class[D]): Option[D]
 
   def get[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Option[D]
+
+  def exists(id: String): Boolean
+
+  def exists(id: String, timeout: Duration): Boolean
+
+  def exists[D <: Document[_]](document: D): Boolean
+
+  def exists[D <: Document[_]](document: D, timeout: Duration): Boolean
+
+  def getFromReplica(id: String): Iterable[JsonDocument]
+
+  def getFromReplica(id: String, timeout: Duration): Iterable[JsonDocument]
+
+  def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Iterable[D]
+
+  def getFromReplica[D <: Document[_]](id: String, target: Class[D], timeout: Duration): Iterable[D]
 
   def insert[D <: Document[_]](document: D, timeout: Duration = null): D
 
@@ -56,5 +73,7 @@ trait Bucket {
   def remove[D <: Document[_]](document: D): D
 
   def remove[D <: Document[_]](document: D, timeout: Duration): D
+
+
 
 }

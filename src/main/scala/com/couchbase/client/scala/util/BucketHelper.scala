@@ -24,6 +24,7 @@ package com.couchbase.client.scala.util
 import com.couchbase.client.core.{CouchbaseException, CouchbaseCore}
 import com.couchbase.client.core.message.ResponseStatus
 import com.couchbase.client.core.message.kv._
+import com.couchbase.client.scala.bucket.ReplicaReader
 import com.couchbase.client.scala.document.Document
 import com.couchbase.client.scala.error._
 import com.couchbase.client.scala.transcoder.{JsonTranscoder, RawJsonTranscoder, Transcoder}
@@ -46,7 +47,8 @@ object BucketHelper {
     Observable
       .just((id, bucket))
       .flatMap[GetResponse](
-        scalaFunction1ToRxFunc1((pair: (String, String)) => core.send[GetResponse](new GetRequest(pair._1, pair._2)))
+        scalaFunction1ToRxFunc1((pair: (String, String)) =>
+          core.send[GetResponse](new GetRequest(pair._1, pair._2)))
       )
       .filter(scalaFunction1ToRxFunc1(res => {
         if (res.status().isSuccess) {
@@ -70,13 +72,43 @@ object BucketHelper {
           false
         }
       }))
-      .map[D](scalaFunction1ToRxFunc1(res => {
+      .map[D](scalaFunction1ToRxFunc1(res =>
         transcoder.decode(id, res.content(), res.cas(), 0, res.flags(), res.status())
+      ))
+  }
+
+  def getFromReplica[D <: Document[_]](core: CouchbaseCore, id: String, bucket: String,
+    target: Class[D], transcoder: Transcoder[D, _]): Observable[D] = {
+    ReplicaReader
+      .read(core, id, bucket)
+      .map[D](scalaFunction1ToRxFunc1(res =>
+        transcoder.decode(id, res.content(), res.cas(), 0, res.flags(), res.status())
+      ))
+      .cache(4)
+  }
+
+  def exists(core: CouchbaseCore, id: String, bucket: String): Observable[Boolean] = {
+    Observable
+      .just((id, bucket))
+      .flatMap[ObserveResponse](
+        scalaFunction1ToRxFunc1((pair: (String, String)) =>
+          core.send[ObserveResponse](new ObserveRequest(pair._1, 0, true, 0, pair._2)))
+      ).map(scalaFunction1ToRxFunc1(response => {
+        if (response.content() != null && response.content().refCnt() > 0) {
+          response.content().release()
+        }
+
+        val found = response.observeStatus()
+        found match {
+          case ObserveResponse.ObserveStatus.FOUND_PERSISTED
+               | ObserveResponse.ObserveStatus.FOUND_NOT_PERSISTED => true
+          case _ => false
+        }
       }))
   }
 
-  def upsert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
-    Transcoder[D, _]]): Observable[D] = {
+  def upsert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String,
+    transcoders: Map[Class[D], Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -106,8 +138,8 @@ object BucketHelper {
       }))
   }
 
-  def insert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
-    Transcoder[D, _]]): Observable[D] = {
+  def insert[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String,
+    transcoders: Map[Class[D], Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -137,8 +169,8 @@ object BucketHelper {
       }))
   }
 
-  def replace[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
-    Transcoder[D, _]]): Observable[D] = {
+  def replace[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String,
+    transcoders: Map[Class[D], Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
     val (content, flags) = transcoder.encode(document)
     val expiry = document.expiry.getOrElse(NO_EXPIRY).toSeconds.toInt
@@ -169,8 +201,8 @@ object BucketHelper {
       }))
   }
 
-  def remove[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String, transcoders: Map[Class[D],
-    Transcoder[D, _]]): Observable[D] = {
+  def remove[D <: Document[_]](core: CouchbaseCore, document: D, bucket: String,
+    transcoders: Map[Class[D], Transcoder[D, _]]): Observable[D] = {
     val transcoder = transcoderFor(document.getClass.asInstanceOf[Class[D]], transcoders)
 
     Observable

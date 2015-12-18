@@ -46,6 +46,18 @@ class RsCouchbaseBucket(core: CouchbaseCore, _name: String) extends RsBucket {
       BucketHelper.get[D](core, id, name, target, BucketHelper.transcoderFor(target, t)))
   }
 
+  override def exists(id: String): Publisher[Boolean] =
+    toPublisher(BucketHelper.exists(core, id, name()))
+
+  override def getFromReplica[D <: Document[_]](id: String, target: Class[D]): Publisher[D] = {
+    val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
+    toPublisher(BucketHelper
+      .getFromReplica(core, id, name(), target, BucketHelper.transcoderFor(target, t)))
+  }
+
+  override def getFromReplica(id: String): Publisher[JsonDocument] = getFromReplica(id, classOf[JsonDocument])
+
+  override def exists[D <: Document[_]](document: D): Publisher[Boolean] = exists(document.id)
 
   override def insert[D <: Document[_]](document: D): Publisher[D] = {
     val t = transcoders.asInstanceOf[Map[Class[D], Transcoder[D, _]]]
